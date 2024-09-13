@@ -1,0 +1,97 @@
+import pandas as pd
+
+
+ds = pd.read_csv('your_dataset.csv')
+
+# Define the dependent variable column 
+dep_var = 'dependent_column'  
+rating_column = 'rating'
+
+# empty dataframes to store outliers and the cleaned data
+outliers_ds = pd.DataFrame(columns=ds.columns)
+clean_ds = pd.DataFrame(columns=ds.columns)
+
+# Group by the 'rating' column and find outliers based on IQR
+for rating, group in df.groupby(rating_column):
+    Q1 = group[dep_var].quantile(0.25)  # 25th percentile
+    Q3 = group[dep_var].quantile(0.75)  # 75th percentile
+    IQR = Q3 - Q1  
+    # the lower and upper bounds for detecting outliers
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    # Identify outliers
+    outliers = group[(group[dep_var] < lower_bound) | (group[dep_var] > upper_bound)]
+    non_outliers = group[(group[dep_var] >= lower_bound) & (group[dep_var] <= upper_bound)]
+
+    # Append outliers and non-outliers to the respective dataframes
+    outliers_ds = pd.concat([outliers_df, outliers])
+    cleaned_ds = pd.concat([clean_ds, non_outliers])
+
+# Save the cleaned dataset (without outliers) to a new CSV file
+clean_ds.to_csv('cleaned_dataset.csv', index=False)
+
+# Save the outliers to a separate CSV file
+outliers_ds.to_csv('outliers_dataset.csv', index=False)
+
+
+
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from sklearn.preprocessing import StandardScaler
+
+# Sample data with trade_id
+data = {
+    'trade_id': [1, 1, 1, 1, 2, 2, 2, 2],
+    'price': [10, 20, 15, 1000, 300, 500, 450, 7000],  # Contains anomalies
+    'volume': [100, 110, 105, 120, 150, 145, 155, 170],
+    'volatility': [0.01, 0.02, 0.015, 0.1, 0.03, 0.04, 0.035, 0.05]
+}
+df = pd.DataFrame(data)
+
+# Normalize the numerical features
+scaler = StandardScaler()
+df_scaled = scaler.fit_transform(df[['price', 'volume', 'volatility']])
+
+# Define the autoencoder model
+input_dim = df_scaled.shape[1]
+encoding_dim = 2  # Compression to 2 dimensions
+
+input_layer = layers.Input(shape=(input_dim,))
+encoded = layers.Dense(encoding_dim, activation='relu')(input_layer)
+decoded = layers.Dense(input_dim, activation='linear')(encoded)
+
+autoencoder = models.Model(inputs=input_layer, outputs=decoded)
+
+# Compile the model
+autoencoder.compile(optimizer='adam', loss='mse')
+
+# Train the autoencoder
+autoencoder.fit(df_scaled, df_scaled, epochs=50, batch_size=2, shuffle=True, validation_split=0.2, verbose=0)
+
+# Predict using the autoencoder
+df_reconstructed = autoencoder.predict(df_scaled)
+
+# Calculate reconstruction error
+reconstruction_error = np.mean(np.abs(df_scaled - df_reconstructed), axis=1)
+
+# Define threshold (can be tuned)
+threshold = np.percentile(reconstruction_error, 95)
+
+# Identify anomalies
+df['reconstruction_error'] = reconstruction_error
+df['anomaly'] = df['reconstruction_error'] > threshold
+
+# Inverse transform the scaled data to get original feature values
+df_reconstructed_orig = scaler.inverse_transform(df_reconstructed)
+
+# Add the predicted (reconstructed) values to the dataframe
+df['predicted_price'] = df_reconstructed_orig[:, 0]
+df['predicted_volume'] = df_reconstructed_orig[:, 1]
+df['predicted_volatility'] = df_reconstructed_orig[:, 2]
+
+# Display anomalies with predicted values
+anomalies = df[df['anomaly'] == True]
+print(anomalies[['trade_id', 'price', 'predicted_price', 'volume', 'predicted_volume', 'volatility', 'predicted_volatility', 'reconstruction_error']])
