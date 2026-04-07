@@ -1,0 +1,24 @@
+{
+  "name": "genai",
+  "version": "1.0.0",
+  "description": "Generative AI explorations: LangChain RAG pipelines, instruction tuning, and vector stores",
+  "private": true,
+  "scripts": {
+    "notebook": "jupyter notebook notebooks/"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.0",
+    "@langchain/openai": "^0.3.0",
+    "langchain": "^0.3.0",
+    "dotenv": "^16.0.0",
+    "ml-distance": "^4.0.0",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
